@@ -1,0 +1,562 @@
+{
+  "info": {
+    "name": "Blogging API - Complete Test Suite",
+    "description": "Comprehensive testing for the Blogging API with authentication, CRUD operations, and advanced querying",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Sign Up - Create New User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has user id and email', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('email');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"email\": \"john.doe.test@example.com\",\n  \"password\": \"securePassword123\"\n}"
+            },
+            "url": "http://localhost:3000/api/auth/signup",
+            "description": "Create a new user account. Change the email for each test run to avoid duplicates."
+          }
+        },
+        {
+          "name": "Sign In - Get Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.collectionVariables.set('authToken', jsonData.token);",
+                  "    console.log('✅ Token saved to collection variable');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe.test@example.com\",\n  \"password\": \"securePassword123\"\n}"
+            },
+            "url": "http://localhost:3000/api/auth/signin",
+            "description": "Sign in and receive JWT token. Token is automatically saved to collection variable 'authToken'."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Blog CRUD Operations",
+      "item": [
+        {
+          "name": "Create Blog (Draft)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Blog created with draft state', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.state).to.equal('draft');",
+                  "    pm.expect(jsonData).to.have.property('_id');",
+                  "    pm.expect(jsonData).to.have.property('reading_time');",
+                  "    pm.collectionVariables.set('blogId', jsonData._id);",
+                  "    console.log('✅ Blog ID saved:', jsonData._id);",
+                  "    console.log('Reading time:', jsonData.reading_time, 'minutes');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Getting Started with Node.js and Express\",\n  \"description\": \"A comprehensive guide to building RESTful APIs with Node.js and Express framework\",\n  \"tags\": [\"nodejs\", \"javascript\", \"backend\", \"api\", \"express\"],\n  \"body\": \"Node.js is a powerful JavaScript runtime built on Chrome's V8 engine. It allows developers to build scalable network applications using JavaScript on the server side. In this comprehensive guide, we'll explore the fundamentals of Node.js, including its event-driven architecture, non-blocking I/O model, and how to build RESTful APIs using Express framework. We'll cover topics such as routing, middleware, authentication with JWT tokens, database integration with MongoDB, error handling, logging with Winston, and best practices for production deployments. By the end of this tutorial, you'll have a solid understanding of how to build robust, secure, and performant backend applications with Node.js. We'll also discuss testing strategies using Jest and Supertest to ensure your API works correctly.\"\n}"
+            },
+            "url": "http://localhost:3000/api/blogs",
+            "description": "Create a new blog. It starts in draft state. Reading time is automatically calculated."
+          }
+        },
+        {
+          "name": "Publish Blog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Blog state changed to published', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.state).to.equal('published');",
+                  "    console.log('✅ Blog published successfully');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": "http://localhost:3000/api/blogs/{{blogId}}/publish",
+            "description": "Change blog state from draft to published. Only the owner can publish."
+          }
+        },
+        {
+          "name": "Update Blog",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Blog updated successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('_id');",
+                  "    console.log('✅ Blog updated');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"An UPDATED and IMPROVED comprehensive guide to Node.js development\",\n  \"tags\": [\"nodejs\", \"javascript\", \"backend\", \"api\", \"express\", \"mongodb\", \"updated\"]\n}"
+            },
+            "url": "http://localhost:3000/api/blogs/{{blogId}}",
+            "description": "Update blog content. Only the owner can update. Can modify title, description, tags, body, or state."
+          }
+        },
+        {
+          "name": "Get Single Blog (Increments Read Count)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Blog has author information', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('author');",
+                  "    pm.expect(jsonData.author).to.have.property('first_name');",
+                  "    pm.expect(jsonData.author).to.have.property('email');",
+                  "    console.log('Author:', jsonData.author.first_name, jsonData.author.last_name);",
+                  "});",
+                  "",
+                  "pm.test('Read count incremented', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.read_count).to.be.at.least(1);",
+                  "    console.log('✅ Read count:', jsonData.read_count);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:3000/api/blogs/{{blogId}}",
+            "description": "Get a single blog by ID. Increments read_count by 1 and returns populated author information."
+          }
+        },
+        {
+          "name": "Delete Blog (Run Last!)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 204', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "    console.log('✅ Blog deleted successfully');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": "http://localhost:3000/api/blogs/{{blogId}}",
+            "description": "Delete a blog. Only the owner can delete. ⚠️ Run this last in your test sequence!"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Public Blog Listing & Search",
+      "item": [
+        {
+          "name": "List All Published Blogs (Paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has pagination info', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('page');",
+                  "    pm.expect(jsonData).to.have.property('limit');",
+                  "    pm.expect(jsonData).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('items');",
+                  "    console.log('📊 Total blogs:', jsonData.total);",
+                  "    console.log('📄 Items on this page:', jsonData.items.length);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs?page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "List all published blogs with pagination. Default is 20 per page. Public endpoint - no auth required."
+          }
+        },
+        {
+          "name": "Search Blogs by Keyword",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs?search=nodejs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "nodejs",
+                  "description": "Searches in title and tags"
+                }
+              ]
+            },
+            "description": "Search blogs by keywords in title or tags (case-insensitive)"
+          }
+        },
+        {
+          "name": "Filter by Author Name",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs?author=John",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs"],
+              "query": [
+                {
+                  "key": "author",
+                  "value": "John",
+                  "description": "Filter by author's first or last name"
+                }
+              ]
+            },
+            "description": "Filter blogs by author's name (searches in first_name and last_name)"
+          }
+        },
+        {
+          "name": "Sort by Read Count (Most Popular)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs?sortBy=read_count&order=desc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs"],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "read_count"
+                },
+                {
+                  "key": "order",
+                  "value": "desc",
+                  "description": "desc = most popular first"
+                }
+              ]
+            },
+            "description": "Sort blogs by read count in descending order (most read first)"
+          }
+        },
+        {
+          "name": "Sort by Reading Time",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs?sortBy=reading_time&order=asc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs"],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "reading_time"
+                },
+                {
+                  "key": "order",
+                  "value": "asc",
+                  "description": "asc = shortest first"
+                }
+              ]
+            },
+            "description": "Sort blogs by reading time (shortest to longest)"
+          }
+        },
+        {
+          "name": "Sort by Timestamp (Newest First)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs?sortBy=createdAt&order=desc",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs"],
+              "query": [
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "order",
+                  "value": "desc",
+                  "description": "desc = newest first"
+                }
+              ]
+            },
+            "description": "Sort blogs by creation date (newest first)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Owner's Blog Management",
+      "item": [
+        {
+          "name": "Get My Blogs (All States)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns only my blogs', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('items');",
+                  "    console.log('📝 My total blogs:', jsonData.total);",
+                  "    console.log('📄 Blogs on this page:', jsonData.items.length);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs/me/list?page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs", "me", "list"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all blogs owned by the authenticated user (both draft and published)"
+          }
+        },
+        {
+          "name": "Get My Draft Blogs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs/me/list?state=draft",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs", "me", "list"],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "draft"
+                }
+              ]
+            },
+            "description": "Get only draft blogs owned by the authenticated user"
+          }
+        },
+        {
+          "name": "Get My Published Blogs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:3000/api/blogs/me/list?state=published",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "3000",
+              "path": ["api", "blogs", "me", "list"],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "published"
+                }
+              ]
+            },
+            "description": "Get only published blogs owned by the authenticated user"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "blogId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
